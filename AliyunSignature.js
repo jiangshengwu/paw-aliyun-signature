@@ -70,8 +70,8 @@
             s = s.replace(/%7E/g, '~');
             return s;
         };
-        var getQueryWithSignature = function(query, keySecret) {
-            var kvs = query.split(sep);
+        var getQueryWithSignature = function(userParams, commonParams, keySecret) {
+            var kvs = (userParams + sep + commonParams).split(sep);
             var keys = [];
             var params = {};
             for (var i = 0; i < kvs.length; i++) {
@@ -93,11 +93,24 @@
             var strToSign = httpMethod + sep + percentEncode('/') + sep + canonicalized;
             var hash = CryptoJS.HmacSHA1(strToSign, keySecret +sep);
             var sign = CryptoJS.enc.Base64.stringify(hash);
-            return 'Signature=' + percentEncode(sign) + sep + query;
+            return 'Signature=' + percentEncode(sign) + sep + commonParams;
+        };
+        var getUserParameters = function(request) {
+            var components = request.getUrl(true).components;
+            var params = '';
+            for (var i = 0; i < components.length; i++) {
+                var c = components[i];
+                if (typeof c == 'string') {
+                    params += c.replace(/^http.*\//g,'').replace(/\/|\?/g,'').replace(/^&|&$/g,'');
+                    params += '&';
+                }
+            }
+            params = params.replace(/^&|&$/g,'');
+            return params;
         };
 
         this.evaluate = function(context) {
-            var userParameters = this.userParameters;
+            var userParams = getUserParameters(context.getCurrentRequest());
             var keyId = this.keyId;
             var keySecret = this.keySecret;
             var resourceOwnerAccount = this.resourceOwnerAccount;
@@ -110,11 +123,10 @@
             var signatureVersion = '1.0';
             var timeStamp = new Date().toISOString();
             var signatureNonce = Math.uuid();
-            var query = ('{userParameters}&Format={format}&Version={version}'
+            var commonParams = ('Format={format}&Version={version}'
                 + '&AccessKeyId={keyId}&SignatureMethod={signatureMethod}'
                 + '&SignatureVersion={signatureVersion}&'
                 + 'SignatureNonce={signatureNonce}&TimeStamp={timeStamp}').format({
-                userParameters: userParameters,
                 format: format,
                 version: version,
                 keyId: keyId,
@@ -126,14 +138,13 @@
             if (resourceOwnerAccount != '') {
                 query += '&ResourceOwnerAccount=' + resourceOwnerAccount
             }
-            return getQueryWithSignature(query, keySecret);
+            return getQueryWithSignature(userParams, commonParams, keySecret);
         };
     };
 
     AliyunSignature.identifier = "com.weibo.api.AliyunSignature";
     AliyunSignature.title = "Aliyun Signature";
     AliyunSignature.inputs = [
-        DynamicValueInput("userParameters", "User Parameters", "String"),
         DynamicValueInput("keyId", "Access Key Id", "String"),
         DynamicValueInput("keySecret", "Access Key Secret", "String"),
         DynamicValueInput("resourceOwnerAccount", "Resource Owner Account", "String"),
