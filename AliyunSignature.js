@@ -60,6 +60,8 @@
         return uuid.join('');
     };
 
+    var identifier = 'com.weibo.api.AliyunSignature';
+
     var AliyunSignature = function() {
         var sep = '&';
         var httpMethod = 'GET';
@@ -93,20 +95,26 @@
             var strToSign = httpMethod + sep + percentEncode('/') + sep + canonicalized;
             var hash = CryptoJS.HmacSHA1(strToSign, keySecret +sep);
             var sign = CryptoJS.enc.Base64.stringify(hash);
-            return 'Signature=' + percentEncode(sign) + sep + commonParams;
+            return percentEncode(sign) + sep + commonParams;
         };
         var getUserParameters = function(request) {
-            var components = request.getUrl(true).components;
-            var params = '';
-            for (var i = 0; i < components.length; i++) {
+            var ds = request.getUrl(true);
+            var newDs = DynamicString();
+            var components = ds.components;
+            for (var i = 0; i < ds.length; i ++) {
                 var c = components[i];
-                if (typeof c == 'string') {
-                    params += c.replace(/^http.*\//g,'').replace(/\/|\?/g,'').replace(/^&|&$/g,'');
-                    params += '&';
+                if (c) {
+                    if (typeof c === 'string') {
+                        newDs.appendString(c);
+                    } else {
+                        if (c.type != identifier) {
+                            newDs.appendDynamicValue(c);
+                        }
+                    }
                 }
             }
-            params = params.replace(/^&|&$/g,'');
-            return params;
+            var str = newDs.getEvaluatedString();
+            return str.replace(/^http.*?\?/, '').replace(/Signature=&?/, '').replace(/^&|&$/, '');
         };
 
         this.evaluate = function(context) {
@@ -142,7 +150,7 @@
         };
     };
 
-    AliyunSignature.identifier = "com.weibo.api.AliyunSignature";
+    AliyunSignature.identifier = identifier;
     AliyunSignature.title = "Aliyun Signature";
     AliyunSignature.inputs = [
         DynamicValueInput("keyId", "Access Key Id", "String"),
