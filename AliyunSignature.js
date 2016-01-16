@@ -22,7 +22,7 @@
             }
         }
         return result;
-    }
+    };
 
     var pad = function(number) {
         var r = String(number);
@@ -30,7 +30,7 @@
             r = '0' + r;
         }
         return r;
-    }
+    };
 
     Date.prototype.toISOString = function() {
         return this.getUTCFullYear()
@@ -44,7 +44,7 @@
 
     var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
     Math.uuid = function() {
-        var chars = CHARS, uuid = new Array(36), rnd=0, r;
+        var uuid = new Array(36), rnd = 0, r;
         for (var i = 0; i < 36; i++) {
             if (i==8 || i==13 ||  i==18 || i==23) {
                 uuid[i] = '-';
@@ -54,7 +54,7 @@
                 if (rnd <= 0x02) rnd = 0x2000000 + (Math.random()*0x1000000)|0;
                 r = rnd & 0xf;
                 rnd = rnd >> 4;
-                uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+                uuid[i] = CHARS[(i == 19) ? (r & 0x3) | 0x8 : r];
             }
         }
         return uuid.join('');
@@ -86,10 +86,10 @@
             var sortedParams = [];
             for (var i = 0; i < keys.length; i++) {
                 var encodeKey = percentEncode(keys[i]);
-                var encodeValue = percentEncode(params[keys[i]])
+                var encodeValue = percentEncode(params[keys[i]]);
                 sortedParams.push(encodeKey + '=' + encodeValue)
             }
-            var canonicalized = percentEncode(sortedParams.join(sep))
+            var canonicalized = percentEncode(sortedParams.join(sep));
             var strToSign = httpMethod + sep + percentEncode('/') + sep + canonicalized;
             var hash = CryptoJS.HmacSHA1(strToSign, keySecret +sep);
             var sign = CryptoJS.enc.Base64.stringify(hash);
@@ -127,10 +127,6 @@
                 query += '&ResourceOwnerAccount=' + resourceOwnerAccount
             }
             return getQueryWithSignature(query, keySecret);
-        };
-
-        this.generate = function(context) {
-            return '';
         };
     };
 
