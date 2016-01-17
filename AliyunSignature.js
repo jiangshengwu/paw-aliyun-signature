@@ -144,7 +144,7 @@
                 timeStamp: timeStamp
             });
             if (resourceOwnerAccount != '') {
-                query += '&ResourceOwnerAccount=' + resourceOwnerAccount
+                commonParams += '&ResourceOwnerAccount=' + resourceOwnerAccount
             }
             return getQueryWithSignature(userParams, commonParams, keySecret);
         };
