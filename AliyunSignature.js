@@ -72,6 +72,12 @@
             s = s.replace(/%7E/g, '~');
             return s;
         };
+        var percent = function(s) {
+            s = s.replace(/\+/g, '%20');
+            s = s.replace(/\*/g, '%2A');
+            s = s.replace(/%7E/g, '~');
+            return s;
+        };
         var getQueryWithSignature = function(userParams, commonParams, keySecret) {
             var kvs = (userParams + sep + commonParams).split(sep);
             var keys = [];
@@ -88,7 +94,7 @@
             var sortedParams = [];
             for (var i = 0; i < keys.length; i++) {
                 var encodeKey = percentEncode(keys[i]);
-                var encodeValue = percentEncode(params[keys[i]]);
+                var encodeValue = percent(params[keys[i]]);
                 sortedParams.push(encodeKey + '=' + encodeValue)
             }
             var canonicalized = percentEncode(sortedParams.join(sep));
@@ -141,7 +147,7 @@
                 signatureMethod: signatureMethod,
                 signatureVersion: signatureVersion,
                 signatureNonce: signatureNonce,
-                timeStamp: timeStamp
+                timeStamp: encodeURIComponent(timeStamp)
             });
             if (resourceOwnerAccount != '') {
                 commonParams += '&ResourceOwnerAccount=' + resourceOwnerAccount
