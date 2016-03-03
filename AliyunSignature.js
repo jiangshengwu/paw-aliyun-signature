@@ -126,7 +126,7 @@
             if (this.format != '') {
                 format = this.format;
             }
-            var version = '2014-05-26';
+            var version = this.version;
             var signatureMethod = 'HMAC-SHA1';
             var signatureVersion = '1.0';
             var timeStamp = new Date().toISOString();
@@ -156,7 +156,8 @@
         DynamicValueInput("keyId", "Access Key Id", "String"),
         DynamicValueInput("keySecret", "Access Key Secret", "String"),
         DynamicValueInput("resourceOwnerAccount", "Resource Owner Account", "String"),
-        DynamicValueInput("format", "Format", "String")
+        DynamicValueInput("format", "Format", "String"),
+        DynamicValueInput("version", "Version", "String")
     ];
     registerDynamicValueClass(AliyunSignature);
 }).call(this);
