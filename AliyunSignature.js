@@ -72,6 +72,12 @@
             s = s.replace(/%7E/g, '~');
             return s;
         };
+        var percent = function(s) {
+            s = s.replace(/\+/g, '%20');
+            s = s.replace(/\*/g, '%2A');
+            s = s.replace(/%7E/g, '~');
+            return s;
+        };
         var getQueryWithSignature = function(userParams, commonParams, keySecret) {
             var kvs = (userParams + sep + commonParams).split(sep);
             var keys = [];
@@ -88,7 +94,7 @@
             var sortedParams = [];
             for (var i = 0; i < keys.length; i++) {
                 var encodeKey = percentEncode(keys[i]);
-                var encodeValue = percentEncode(params[keys[i]]);
+                var encodeValue = percent(params[keys[i]]);
                 sortedParams.push(encodeKey + '=' + encodeValue)
             }
             var canonicalized = percentEncode(sortedParams.join(sep));
@@ -126,7 +132,7 @@
             if (this.format != '') {
                 format = this.format;
             }
-            var version = '2014-05-26';
+            var version = this.version;
             var signatureMethod = 'HMAC-SHA1';
             var signatureVersion = '1.0';
             var timeStamp = new Date().toISOString();
@@ -141,7 +147,7 @@
                 signatureMethod: signatureMethod,
                 signatureVersion: signatureVersion,
                 signatureNonce: signatureNonce,
-                timeStamp: timeStamp
+                timeStamp: encodeURIComponent(timeStamp)
             });
             if (resourceOwnerAccount != '') {
                 commonParams += '&ResourceOwnerAccount=' + resourceOwnerAccount
@@ -156,7 +162,8 @@
         DynamicValueInput("keyId", "Access Key Id", "String"),
         DynamicValueInput("keySecret", "Access Key Secret", "String"),
         DynamicValueInput("resourceOwnerAccount", "Resource Owner Account", "String"),
-        DynamicValueInput("format", "Format", "String")
+        DynamicValueInput("format", "Format", "String"),
+        DynamicValueInput("version", "Version", "String")
     ];
     registerDynamicValueClass(AliyunSignature);
 }).call(this);
