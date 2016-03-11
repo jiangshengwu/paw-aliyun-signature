@@ -1,5 +1,4 @@
 (function() {
-    var CryptoJS = require("crypto-js");
 
     String.prototype.format = function(args) {
         var result = this;
@@ -65,17 +64,15 @@
     var AliyunSignature = function() {
         var sep = '&';
         var httpMethod = 'GET';
-        var percentEncode = function(s) {
-            s = encodeURIComponent(s);
+        var percent = function(s) {
             s = s.replace(/\+/g, '%20');
             s = s.replace(/\*/g, '%2A');
             s = s.replace(/%7E/g, '~');
             return s;
         };
-        var percent = function(s) {
-            s = s.replace(/\+/g, '%20');
-            s = s.replace(/\*/g, '%2A');
-            s = s.replace(/%7E/g, '~');
+        var percentEncode = function(s) {
+            s = encodeURIComponent(s);
+            s = percent(s);
             return s;
         };
         var getQueryWithSignature = function(userParams, commonParams, keySecret) {
@@ -99,9 +96,16 @@
             }
             var canonicalized = percentEncode(sortedParams.join(sep));
             var strToSign = httpMethod + sep + percentEncode('/') + sep + canonicalized;
-            var hash = CryptoJS.HmacSHA1(strToSign, keySecret +sep);
-            var sign = CryptoJS.enc.Base64.stringify(hash);
-            return percentEncode(sign) + sep + commonParams;
+
+            var dynamicValue = DynamicValue('com.luckymarmot.HMACDynamicValue', {
+                'input': strToSign,
+                'key': keySecret +sep,
+                'algorithm':1 // HMAC-SHA1
+                });
+
+            var sign = percentEncode(DynamicString(dynamicValue).getEvaluatedString());
+
+            return sign + sep + commonParams;
         };
         var getUserParameters = function(request) {
             var ds = request.getUrl(true);
@@ -154,6 +158,10 @@
             }
             return getQueryWithSignature(userParams, commonParams, keySecret);
         };
+
+        this.title = function(context) {
+            return "AliyunSignature[" + this.version + "]";
+        }
     };
 
     AliyunSignature.identifier = identifier;
