@@ -63,26 +63,27 @@
 
     var AliyunSignature = function() {
         var sep = '&';
-        var httpMethod = 'GET';
+
+        var percentEncode = function(s) {
+            s = encodeURIComponent(s);
+            s = percent(s);
+            return s;
+        };
         var percent = function(s) {
             s = s.replace(/\+/g, '%20');
             s = s.replace(/\*/g, '%2A');
             s = s.replace(/%7E/g, '~');
             return s;
         };
-        var percentEncode = function(s) {
-            s = encodeURIComponent(s);
-            s = percent(s);
-            return s;
-        };
-        var getQueryWithSignature = function(userParams, commonParams, keySecret) {
-            var kvs = (userParams + sep + commonParams).split(sep);
+
+        var signParams = function(httpMethod, userParams, keySecret) {
+            var kvs = userParams.split(sep);
             var keys = [];
             var params = {};
             for (var i = 0; i < kvs.length; i++) {
                 var arr = kvs[i].split('=');
                 if (arr.length != 2) {
-                    return '';
+                    continue;
                 }
                 keys.push(arr[0]);
                 params[arr[0]] = arr[1];
@@ -103,9 +104,7 @@
                 'algorithm':1 // HMAC-SHA1
                 });
 
-            var sign = percentEncode(DynamicString(dynamicValue).getEvaluatedString());
-
-            return sign + sep + commonParams;
+            return DynamicString(dynamicValue).getEvaluatedString();
         };
         var getUserParameters = function(request) {
             var ds = request.getUrl(true);
@@ -126,17 +125,30 @@
             var str = newDs.getEvaluatedString();
             return str.replace(/^http.*?\?/, '').replace(/Signature=&?/, '').replace(/^&|&$/, '');
         };
-
-        this.evaluate = function(context) {
-            var userParams = getUserParameters(context.getCurrentRequest());
-            var keyId = this.keyId;
-            var keySecret = this.keySecret;
-            var resourceOwnerAccount = this.resourceOwnerAccount;
-            var format = 'JSON';
-            if (this.format != '') {
-                format = this.format;
+        var getUserParametersFromBody = function(request) {
+            var params = [];
+            var bodyParameters = request.getUrlEncodedBody(true);
+            for (var key in bodyParameters) {
+                if (key=="Signature") {
+                    continue;
+                }
+                var value = bodyParameters[key]; // DynamicString
+                params.push("" + key + "=" + encodeURIComponent(value.getEvaluatedString()));
             }
-            var version = this.version;
+            return params.join(sep);
+        };
+
+        var evaluateGet = function(env, request) {
+            var httpMethod = request.method;
+            var userParams = getUserParameters(request);
+            var keyId = env.keyId;
+            var keySecret = env.keySecret;
+            var resourceOwnerAccount = env.resourceOwnerAccount;
+            var format = 'JSON';
+            if (env.format != '') {
+                format = env.format;
+            }
+            var version = env.version;
             var signatureMethod = 'HMAC-SHA1';
             var signatureVersion = '1.0';
             var timeStamp = new Date().toISOString();
@@ -156,7 +168,32 @@
             if (resourceOwnerAccount != '') {
                 commonParams += '&ResourceOwnerAccount=' + resourceOwnerAccount
             }
-            return getQueryWithSignature(userParams, commonParams, keySecret);
+
+            var signature = signParams(httpMethod, userParams + sep + commonParams, keySecret);
+            return encodeURIComponent(signature) + sep + commonParams;
+        };
+        var evaluatePost = function(env, request) {
+            var httpMethod = request.method;
+            var userParams = getUserParametersFromBody(request);
+            var keySecret = env.keySecret;
+
+            return signParams(httpMethod, userParams, keySecret);
+        }
+
+        this.evaluate = function(context) {
+            var request = context.getCurrentRequest();
+            if (request == undefined) {
+                return '';
+            }
+
+            var httpMethod = request.method;
+            if (httpMethod == "GET") {
+                return evaluateGet(this, request);
+            } else if (httpMethod == "POST"){
+                return evaluatePost(this, request);
+            } else {
+                return "____Only_Support_GET_POST____";
+            }
         };
 
         this.title = function(context) {
