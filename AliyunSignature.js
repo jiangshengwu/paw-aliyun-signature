@@ -77,7 +77,7 @@
         };
 
         var signParams = function(httpMethod, userParams, keySecret) {
-            var kvs = userParams.split(sep);
+            var kvs = userParams.replace(/^&|&$/, '').split(sep);
             var keys = [];
             var params = {};
             for (var i = 0; i < kvs.length; i++) {
@@ -106,7 +106,7 @@
 
             return DynamicString(dynamicValue).getEvaluatedString();
         };
-        var getUserParameters = function(request) {
+        var getUserParametersFromUrl = function(request) {
             var ds = request.getUrl(true);
             var newDs = DynamicString();
             var components = ds.components;
@@ -123,7 +123,7 @@
                 }
             }
             var str = newDs.getEvaluatedString();
-            return str.replace(/^http.*?\?/, '').replace(/Signature=&?/, '').replace(/^&|&$/, '');
+            return str.replace(/^http.*?\.com[\/\?]*/, '').replace(/Signature=&?/, '').replace(/^&|&$/, '');
         };
         var getUserParametersFromBody = function(request) {
             var params = [];
@@ -140,7 +140,7 @@
 
         var evaluateGet = function(env, request) {
             var httpMethod = request.method;
-            var userParams = getUserParameters(request);
+            var userParams = getUserParametersFromUrl(request) + sep + getUserParametersFromBody(request);
             var keyId = env.keyId;
             var keySecret = env.keySecret;
             var resourceOwnerAccount = env.resourceOwnerAccount;
@@ -173,10 +173,14 @@
             return encodeURIComponent(signature) + sep + commonParams;
         };
         var evaluatePost = function(env, request) {
+            var urlParams = getUserParametersFromUrl(request);
+            if (urlParams != '') {
+                return evaluateGet(env, request);
+            }
+
             var httpMethod = request.method;
             var userParams = getUserParametersFromBody(request);
             var keySecret = env.keySecret;
-
             return signParams(httpMethod, userParams, keySecret);
         }
 
