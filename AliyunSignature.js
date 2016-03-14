@@ -156,7 +156,7 @@
             var commonParams = ('Format={format}&Version={version}'
                 + '&AccessKeyId={keyId}&SignatureMethod={signatureMethod}'
                 + '&SignatureVersion={signatureVersion}&'
-                + 'SignatureNonce={signatureNonce}&TimeStamp={timeStamp}').format({
+                + 'SignatureNonce={signatureNonce}&Timestamp={timeStamp}').format({
                 format: format,
                 version: version,
                 keyId: keyId,
