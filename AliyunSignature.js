@@ -1,5 +1,4 @@
 (function() {
-    var CryptoJS = require("crypto-js");
 
     String.prototype.format = function(args) {
         var result = this;
@@ -64,12 +63,10 @@
 
     var AliyunSignature = function() {
         var sep = '&';
-        var httpMethod = 'GET';
+
         var percentEncode = function(s) {
             s = encodeURIComponent(s);
-            s = s.replace(/\+/g, '%20');
-            s = s.replace(/\*/g, '%2A');
-            s = s.replace(/%7E/g, '~');
+            s = percent(s);
             return s;
         };
         var percent = function(s) {
@@ -78,14 +75,15 @@
             s = s.replace(/%7E/g, '~');
             return s;
         };
-        var getQueryWithSignature = function(userParams, commonParams, keySecret) {
-            var kvs = (userParams + sep + commonParams).split(sep);
+
+        var signParams = function(httpMethod, userParams, keySecret) {
+            var kvs = userParams.replace(/^&|&$/, '').split(sep);
             var keys = [];
             var params = {};
             for (var i = 0; i < kvs.length; i++) {
                 var arr = kvs[i].split('=');
                 if (arr.length != 2) {
-                    return '';
+                    continue;
                 }
                 keys.push(arr[0]);
                 params[arr[0]] = arr[1];
@@ -99,11 +97,16 @@
             }
             var canonicalized = percentEncode(sortedParams.join(sep));
             var strToSign = httpMethod + sep + percentEncode('/') + sep + canonicalized;
-            var hash = CryptoJS.HmacSHA1(strToSign, keySecret +sep);
-            var sign = CryptoJS.enc.Base64.stringify(hash);
-            return percentEncode(sign) + sep + commonParams;
+
+            var dynamicValue = DynamicValue('com.luckymarmot.HMACDynamicValue', {
+                'input': strToSign,
+                'key': keySecret +sep,
+                'algorithm':1 // HMAC-SHA1
+                });
+
+            return DynamicString(dynamicValue).getEvaluatedString();
         };
-        var getUserParameters = function(request) {
+        var getUserParametersFromUrl = function(request) {
             var ds = request.getUrl(true);
             var newDs = DynamicString();
             var components = ds.components;
@@ -120,19 +123,32 @@
                 }
             }
             var str = newDs.getEvaluatedString();
-            return str.replace(/^http.*?\?/, '').replace(/Signature=&?/, '').replace(/^&|&$/, '');
+            return str.replace(/^http.*?\.com[\/\?]*/, '').replace(/Signature=&?/, '').replace(/^&|&$/, '');
+        };
+        var getUserParametersFromBody = function(request) {
+            var params = [];
+            var bodyParameters = request.getUrlEncodedBody(true);
+            for (var key in bodyParameters) {
+                if (key=="Signature") {
+                    continue;
+                }
+                var value = bodyParameters[key]; // DynamicString
+                params.push("" + key + "=" + encodeURIComponent(value.getEvaluatedString()));
+            }
+            return params.join(sep);
         };
 
-        this.evaluate = function(context) {
-            var userParams = getUserParameters(context.getCurrentRequest());
-            var keyId = this.keyId;
-            var keySecret = this.keySecret;
-            var resourceOwnerAccount = this.resourceOwnerAccount;
+        var evaluateGet = function(env, request) {
+            var httpMethod = request.method;
+            var userParams = getUserParametersFromUrl(request) + sep + getUserParametersFromBody(request);
+            var keyId = env.keyId;
+            var keySecret = env.keySecret;
+            var resourceOwnerAccount = env.resourceOwnerAccount;
             var format = 'JSON';
-            if (this.format != '') {
-                format = this.format;
+            if (env.format != '') {
+                format = env.format;
             }
-            var version = this.version;
+            var version = env.version;
             var signatureMethod = 'HMAC-SHA1';
             var signatureVersion = '1.0';
             var timeStamp = new Date().toISOString();
@@ -152,8 +168,41 @@
             if (resourceOwnerAccount != '') {
                 commonParams += '&ResourceOwnerAccount=' + resourceOwnerAccount
             }
-            return getQueryWithSignature(userParams, commonParams, keySecret);
+
+            var signature = signParams(httpMethod, userParams + sep + commonParams, keySecret);
+            return encodeURIComponent(signature) + sep + commonParams;
         };
+        var evaluatePost = function(env, request) {
+            var urlParams = getUserParametersFromUrl(request);
+            if (urlParams != '') {
+                return evaluateGet(env, request);
+            }
+
+            var httpMethod = request.method;
+            var userParams = getUserParametersFromBody(request);
+            var keySecret = env.keySecret;
+            return signParams(httpMethod, userParams, keySecret);
+        }
+
+        this.evaluate = function(context) {
+            var request = context.getCurrentRequest();
+            if (request == undefined) {
+                return '';
+            }
+
+            var httpMethod = request.method;
+            if (httpMethod == "GET") {
+                return evaluateGet(this, request);
+            } else if (httpMethod == "POST"){
+                return evaluatePost(this, request);
+            } else {
+                return "____Only_Support_GET_POST____";
+            }
+        };
+
+        this.title = function(context) {
+            return "AliyunSignature[" + this.version + "]";
+        }
     };
 
     AliyunSignature.identifier = identifier;
