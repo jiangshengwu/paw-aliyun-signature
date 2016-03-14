@@ -123,7 +123,7 @@
                 }
             }
             var str = newDs.getEvaluatedString();
-            return str.replace(/^http.*?\.com[\/\?]*/, '').replace(/Signature=&?/, '').replace(/^&|&$/, '');
+            return str.replace(/^https?:\/\/[^\/]+[\/\?]*/, '').replace(/Signature=&?/, '').replace(/^&|&$/, '');
         };
         var getUserParametersFromBody = function(request) {
             var params = [];
