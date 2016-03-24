@@ -14,6 +14,7 @@ For [Paw.app](https://luckymarmot.com/paw)
 公用参数只需添加Action 和 Signature，其中Signature的值设置为此扩展提供的动态值
 ### POST
 方式一：所有公用参数都要添加在外面
+
 方式二：和GET一样添加参数，仅仅将超大参数放入UrlEncodeBody中
 
 ## Contributor
