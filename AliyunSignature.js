@@ -117,7 +117,7 @@
                         newDs.appendString(c);
                     } else {
                         if (c.type !== identifier) {
-                            newDs.appendDynamicValue(c);
+                            newDs.appendString(encodeURIComponent(c.getEvaluatedString()));
                         }
                     }
                 }
