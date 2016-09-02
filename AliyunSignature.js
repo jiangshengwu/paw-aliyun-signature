@@ -92,7 +92,8 @@
             var sortedParams = [];
             for (var i = 0; i < keys.length; i++) {
                 var encodeKey = percentEncode(keys[i]);
-                var encodeValue = percent(params[keys[i]]);
+                // 先解码(paw默认不编码=)、再编码
+                var encodeValue = percent(encodeURIComponent(decodeURIComponent(params[keys[i]])));
                 sortedParams.push(encodeKey + '=' + encodeValue);
             }
             var canonicalized = percentEncode(sortedParams.join(sep));
@@ -138,7 +139,7 @@
             return params.join(sep);
         };
 
-        var evaluateGet = function (env, request) {
+        var evaluateRawString = function (env, request) {
             var httpMethod = request.method;
             var userParams = getUserParametersFromUrl(request) + sep + getUserParametersFromBody(request);
             var keyId = env.keyId;
@@ -173,17 +174,7 @@
             return encodeURIComponent(signature) + sep + commonParams;
         };
 
-        var evaluatePost = function (env, request) {
-            var urlParams = getUserParametersFromUrl(request);
-            if (urlParams != '') {
-                return evaluateGet(env, request);
-            }
 
-            var httpMethod = request.method;
-            var userParams = getUserParametersFromBody(request);
-            var keySecret = env.keySecret;
-            return signParams(httpMethod, userParams, keySecret);
-        };
 
         this.evaluate = function (context) {
             var request = context.getCurrentRequest();
@@ -192,13 +183,13 @@
             }
 
             var httpMethod = request.method;
-            if (httpMethod === "GET") {
-                return evaluateGet(this, request);
-            } else if (httpMethod === "POST") {
-                return evaluatePost(this, request);
+            var retStr = '';
+            if (httpMethod === "GET" || httpMethod === "POST") {
+                retStr = evaluateRawString(this, request);
             } else {
-                return "____Only_Support_GET_POST____";
+                retStr = "____Only_Support_GET_POST____";
             }
+            return retStr;
         };
 
         this.title = function (context) {
