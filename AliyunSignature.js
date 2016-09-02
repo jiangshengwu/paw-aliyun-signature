@@ -69,6 +69,7 @@
             s = percent(s);
             return s;
         };
+
         var percent = function (s) {
             s = s.replace(/\+/g, '%20');
             s = s.replace(/\*/g, '%2A');
@@ -107,6 +108,7 @@
 
             return DynamicString(dynamicValue).getEvaluatedString();
         };
+
         var getUserParametersFromUrl = function (request) {
             var ds = request.getUrl(true);
             var newDs = DynamicString();
@@ -126,6 +128,7 @@
             var str = newDs.getEvaluatedString();
             return str.replace(/^https?:\/\/[^\/]+[\/\?]*/, '').replace(/Signature=&?/, '').replace(/^&|&$/, '');
         };
+
         var getUserParametersFromBody = function (request) {
             var params = [];
             var bodyParameters = request.getUrlEncodedBody(true);
@@ -189,6 +192,7 @@
             } else {
                 retStr = "____Only_Support_GET_POST____";
             }
+
             return retStr;
         };
 
